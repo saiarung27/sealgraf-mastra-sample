@@ -49,7 +49,8 @@ export const buyOfficeSupplies = createTool({
   id: "buy-office-supplies",
   description:
     "Buy office supplies from a supplier. Asks Sealgraf for permission first; " +
-    "buys only if Sealgraf allows the spend, and seals a receipt afterwards.",
+    "buys only if Sealgraf allows the spend, and reports the purchase back " +
+    "to Sealgraf afterwards to seal the receipt.",
   inputSchema: z.object({
     item: z.string().describe("What to buy, e.g. 'A4 paper, 10 reams'"),
     supplier: z.string().describe("Who would be paid, e.g. 'Staples'"),
@@ -61,7 +62,13 @@ export const buyOfficeSupplies = createTool({
     currency: z.string().default("USD"),
   }),
   outputSchema: z.object({
-    status: z.enum(["completed", "denied", "waiting_for_owner", "not_completed"]),
+    status: z.enum([
+      "completed",
+      "denied",
+      "waiting_for_owner",
+      "not_completed",
+      "bought_not_sealed",
+    ]),
     message: z.string(),
     receiptId: z.string().optional(),
   }),
@@ -80,7 +87,12 @@ export const buyOfficeSupplies = createTool({
         currency,
         counterparty: supplier,
         description: item,
-        idempotencyKey: `buy-${Date.now()}`,
+        // Derived from the purchase intent itself — the slip, the item,
+        // the supplier, the exact amount — never from the clock. An
+        // agent-level retry of the same approved purchase re-derives
+        // the same key, so Sealgraf can dedupe it instead of recording
+        // a second spend.
+        idempotencyKey: `buy-${requireEnv("SEALGRAF_MANDATE_ID")}-${supplier}-${item}-${amountMinor}-${currency}`,
       });
     } catch (error) {
       return {
@@ -147,17 +159,31 @@ export const buyOfficeSupplies = createTool({
     });
 
     // 5. Seal it: report the order back to Sealgraf against the token.
-    //    The receipt records the approval and this report together.
-    const receipt = await submitCompletion(
-      check.preauth_id,
-      decisionToken,
-      `completion-${check.preauth_id}`,
-      {
-        counterpartyReceiptRef: order.orderRef,
-        note: item,
-        completedAmountMinor: order.chargedAmountMinor,
-      },
-    );
+    //    The receipt records the approval and this report together. If
+    //    the report itself fails, the purchase still happened — say so
+    //    plainly instead of throwing: the spend is bought but not (yet)
+    //    sealed, and no receipt can be claimed for it.
+    let receipt;
+    try {
+      receipt = await submitCompletion(
+        check.preauth_id,
+        decisionToken,
+        `completion-${check.preauth_id}`,
+        {
+          counterpartyReceiptRef: order.orderRef,
+          note: item,
+          completedAmountMinor: order.chargedAmountMinor,
+        },
+      );
+    } catch (error) {
+      return {
+        status: "bought_not_sealed" as const,
+        message:
+          `Bought "${item}" from ${supplier} (order ${order.orderRef}), but ` +
+          `reporting the purchase to Sealgraf failed, so the spend is NOT ` +
+          `sealed into a receipt. (${(error as Error).message})`,
+      };
+    }
 
     return {
       status: "completed" as const,
@@ -173,7 +199,9 @@ export const procurementAgent = new Agent({
     "You help buy office supplies. Whenever a purchase is requested, use the " +
     "buy-office-supplies tool — it asks Sealgraf for permission before any " +
     "money moves. Never claim a purchase happened unless the tool says it " +
-    "completed, and report denials and owner-waits honestly.",
+    "completed, and report denials and owner-waits honestly. If the tool " +
+    "says a spend was bought but not sealed, say exactly that — the " +
+    "purchase happened, but there is no sealed receipt for it.",
   model: process.env.MODEL_ID ?? "openai/gpt-4o-mini",
   tools: { buyOfficeSupplies },
 });

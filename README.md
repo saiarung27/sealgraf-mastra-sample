@@ -12,9 +12,11 @@ if Sealgraf does not clearly allow the spend, nothing is bought.
 Sealgraf is a permission layer for agent spending. The owner sets limits on
 a permission slip (per-purchase cap, period cap, categories, an
 ask-me-first threshold). The agent checks each purchase against the slip
-before buying. Every completed spend is sealed into a receipt that records
-the approval and the agent's report of what it paid, side by side, so
-neither side can rewrite the record afterwards. Receipts are
+before buying. After a purchase, the agent reports it to Sealgraf, which
+seals the approval and the agent's report of what it paid into a receipt,
+side by side, so neither side can rewrite the record afterwards. If that
+report itself fails, the tool says so plainly — the purchase happened but
+was not sealed, and there is no receipt for it. Receipts are
 tamper-evident, and anyone holding a receipt's check code can open its
 public face — no account needed.
 
@@ -26,7 +28,9 @@ agent wants to buy
       ▼
 check_permission  ── Sealgraf's hosted MCP (https://sealgraf.com/mcp)
       │
-      ├─ allow ──────────────► buy, then submit completion over REST ──► sealed receipt
+      ├─ allow ──────────────► buy, then report the purchase over REST ──► sealed receipt
+      │                         (if the report fails: bought, but not sealed —
+      │                          the tool says so, and there is no receipt)
       ├─ needs_human_approval ► owner decides on their own screen;
       │                         token is claimed over REST if approved
       └─ deny ─────────────────► stop. Nothing is bought.
@@ -41,24 +45,52 @@ Files:
 - `src/agents/procurement-agent.ts` — the agent and its paid tool
   (`buyOfficeSupplies`). The purchase itself is a clearly marked stub:
   swap in your real checkout and the permission flow stays the same.
-- `src/index.ts` — the Mastra instance.
+- `src/mastra/index.ts` — the Mastra instance (the CLI's default layout).
 
 ## Run it
+
+Requires Node.js 22.13 or newer.
 
 1. Create a Sealgraf account and a permission slip, and issue an
    agent-scope API key for the slip (setup guide:
    https://sealgraf.com/developers/setup).
-2. Copy `.env.example` to `.env` and fill in `SEALGRAF_API_KEY`,
-   `SEALGRAF_MANDATE_ID`, `SEALGRAF_AGENT_ID`, and a `MODEL_ID`.
-3. `npm install`, then run with your usual Mastra dev setup and ask the
-   agent to buy something, e.g. *"Buy 10 reams of A4 paper from Staples
-   for $42.50."*
+2. Copy `.env.example` to `.env` and fill in `SEALGRAF_API_KEY` and
+   `SEALGRAF_MANDATE_ID` (`SEALGRAF_AGENT_ID` and `MODEL_ID` already
+   carry the sample's defaults). The Mastra CLI loads `.env` from the
+   project root on every command below — no extra step.
+3. Install the pinned dependencies from the lockfile:
 
-Watch the three outcomes: under the slip's limits it buys and seals a
-receipt; above the ask-first threshold it waits for the owner; outside the
-limits it refuses and buys nothing.
+   ```
+   npm ci
+   ```
+
+4. Start the agent in dev mode (the playground opens on
+   http://localhost:4111):
+
+   ```
+   npm run dev
+   ```
+
+   For a production-style run instead: `npm run build`, then
+   `npm start`.
+
+5. Ask the agent to buy something, e.g. *"Buy 10 reams of A4 paper from
+   Staples for $42.50."*
+
+Watch the outcomes: under the slip's limits it buys and the receipt is
+sealed; above the ask-first threshold it waits for the owner; outside
+the limits it refuses and buys nothing. And if a purchase ever goes
+through but the sealing report fails, the tool returns
+`bought_not_sealed` — bought, honestly reported, but with no receipt.
 
 ## See a real receipt first
+
+> **Deliberately public demo.** The receipt and check code below are
+> shared on purpose: the check code is the bearer key to this one
+> receipt's public face, and publishing it is safe because the receipt
+> is a demo we want anyone to inspect. Use your own receipts the same
+> way — and never publish a check code for a purchase you want kept
+> private.
 
 This flow ran for real on November 3, 2026: an agent checked a $9.98
 purchase, the owner approved it, the agent reported paying $9.72 at

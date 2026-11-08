@@ -74,7 +74,7 @@ async function sealgrafCheckPermissionTool(): Promise<any> {
       },
     });
     sealgrafToolPromise = (async () => {
-      const tools = await mcp.getTools();
+      const tools = await mcp.listTools();
       const tool =
         tools["sealgraf_check_permission"] ?? tools["check_permission"];
       if (!tool) {
@@ -84,6 +84,12 @@ async function sealgrafCheckPermissionTool(): Promise<any> {
       }
       return tool;
     })();
+    // Never cache a failure: if the connection or tool fetch rejects,
+    // forget the promise so the next check retries instead of failing
+    // with the same stale error for the life of the process.
+    sealgrafToolPromise.catch(() => {
+      sealgrafToolPromise = undefined;
+    });
   }
   return sealgrafToolPromise;
 }
