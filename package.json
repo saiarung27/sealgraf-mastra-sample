@@ -1,0 +1,12 @@
+{
+  "name": "sealgraf-mastra-sample",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A Mastra agent whose paid tool asks Sealgraf for permission before it spends, and fails closed when it is not approved.",
+  "dependencies": {
+    "@mastra/core": "latest",
+    "@mastra/mcp": "latest",
+    "zod": "^3.24.0"
+  }
+}
