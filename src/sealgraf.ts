@@ -99,19 +99,20 @@ export async function checkPermission(
   args: CheckPermissionArgs,
 ): Promise<CheckPermissionResult> {
   const tool = await sealgrafCheckPermissionTool();
+  // @mastra/mcp 2.8: tools returned by listTools() take their arguments
+  // verbatim as the first execute() argument — the client passes that
+  // object straight through as the MCP call's `arguments` (dist/index.js:
+  // execute: async (input, context) => ... callTool({ arguments: input })).
+  // There is no `{ context: ... }` wrapper.
   const raw = await tool.execute({
-    context: {
-      mandate_id: args.mandateId,
-      agent_id: args.agentId,
-      category: args.category,
-      amount_minor: args.amountMinor,
-      currency: args.currency,
-      ...(args.counterparty ? { counterparty: args.counterparty } : {}),
-      ...(args.description ? { description: args.description } : {}),
-      ...(args.idempotencyKey
-        ? { idempotency_key: args.idempotencyKey }
-        : {}),
-    },
+    mandate_id: args.mandateId,
+    agent_id: args.agentId,
+    category: args.category,
+    amount_minor: args.amountMinor,
+    currency: args.currency,
+    ...(args.counterparty ? { counterparty: args.counterparty } : {}),
+    ...(args.description ? { description: args.description } : {}),
+    ...(args.idempotencyKey ? { idempotency_key: args.idempotencyKey } : {}),
   });
   // MCP tool results may come back as structured content or as a text block.
   const parsed =

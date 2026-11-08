@@ -72,8 +72,11 @@ export const buyOfficeSupplies = createTool({
     message: z.string(),
     receiptId: z.string().optional(),
   }),
-  execute: async ({ context }) => {
-    const { item, supplier, amountMinor, currency } = context;
+  // @mastra/core 1.82: execute receives the validated input fields
+  // directly as its first argument (ToolAction.execute(inputData, context)
+  // in dist/tools/types.d.ts) — there is no `context` wrapper around the
+  // inputs; the old `execute({ context })` shape threw on every run.
+  execute: async ({ item, supplier, amountMinor, currency }) => {
 
     // 1. Ask BEFORE buying. Any failure here stops the purchase:
     //    an unreachable checker is not permission.
