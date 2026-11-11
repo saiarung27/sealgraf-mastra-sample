@@ -16,8 +16,13 @@
 
 import { MCPClient } from "@mastra/mcp";
 
-const SEALGRAF_MCP_URL = "https://sealgraf.com/mcp";
-const SEALGRAF_BASE_URL = "https://sealgraf.com";
+// Sealgraf's production host. SEALGRAF_BASE_URL overrides it (for a
+// staging deployment or a local test double); the MCP endpoint is
+// always the base URL's /mcp.
+const SEALGRAF_BASE_URL = (
+  process.env.SEALGRAF_BASE_URL ?? "https://sealgraf.com"
+).replace(/\/+$/, "");
+const SEALGRAF_MCP_URL = `${SEALGRAF_BASE_URL}/mcp`;
 
 export interface CheckPermissionArgs {
   mandateId: string;

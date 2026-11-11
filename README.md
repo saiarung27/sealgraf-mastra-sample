@@ -57,7 +57,9 @@ Requires Node.js 22.13 or newer.
 2. Copy `.env.example` to `.env` and fill in `SEALGRAF_API_KEY` and
    `SEALGRAF_MANDATE_ID` (`SEALGRAF_AGENT_ID` and `MODEL_ID` already
    carry the sample's defaults). The Mastra CLI loads `.env` from the
-   project root on every command below — no extra step.
+   project root on every command below — no extra step. (To run
+   against a staging deployment or a local test double instead of
+   production, set `SEALGRAF_BASE_URL` — see `.env.example`.)
 3. Install the pinned dependencies from the lockfile:
 
    ```
