@@ -40,8 +40,11 @@ Files:
 
 - `src/sealgraf.ts` — the Sealgraf client. The check goes through Mastra's
   `MCPClient` against the hosted MCP server. Claiming an approval's token
-  and submitting completion are REST calls — on purpose, Sealgraf has no
-  completion tool in MCP, so finishing a spend is always an explicit act.
+and submitting the completion are REST calls in this sample, on
+purpose: finishing a spend stays an explicit act in the client.
+(Sealgraf's MCP server also offers completion as its
+`report_purchase` tool; this sample deliberately closes spends
+over REST.)
 - `src/agents/procurement-agent.ts` — the agent and its paid tool
   (`buyOfficeSupplies`). The purchase itself is a clearly marked stub:
   swap in your real checkout and the permission flow stays the same.
@@ -94,9 +97,11 @@ through but the sealing report fails, the tool returns
 > way — and never publish a check code for a purchase you want kept
 > private.
 
-This flow ran for real on November 3, 2026: an agent checked a $9.98
-purchase, the owner approved it, the agent reported paying $9.72 at
-Lowe's (order 300901307262453072), and Sealgraf sealed the receipt.
+This flow ran for real on November 3, 2026: an agent checked a
+purchase against its owner's limits, reported what it paid, and
+Sealgraf sealed the receipt. The public face shows it is genuine
+and sealed, when it happened, and the kind of purchase — the
+details live with the owner.
 Open it the way anyone can:
 
 - Go to **https://sealgraf.com/check**
