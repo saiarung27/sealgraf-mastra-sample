@@ -40,11 +40,11 @@ Files:
 
 - `src/sealgraf.ts` — the Sealgraf client. The check goes through Mastra's
   `MCPClient` against the hosted MCP server. Claiming an approval's token
-and submitting the completion are REST calls in this sample, on
-purpose: finishing a spend stays an explicit act in the client.
-(Sealgraf's MCP server also offers completion as its
-`report_purchase` tool; this sample deliberately closes spends
-over REST.)
+  and submitting the completion are REST calls in this sample, on
+  purpose: finishing a spend stays an explicit act in the client.
+  (Sealgraf's MCP server also offers completion as its
+  `report_purchase` tool; this sample deliberately closes spends
+  over REST.)
 - `src/agents/procurement-agent.ts` — the agent and its paid tool
   (`buyOfficeSupplies`). The purchase itself is a clearly marked stub:
   swap in your real checkout and the permission flow stays the same.
